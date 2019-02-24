@@ -5,7 +5,6 @@ import time
 from db import Database
 from face import Face
 
-
 app = Flask(__name__)
 
 app.config['file_allowed'] = ['image/png', 'image/jpeg']
@@ -13,12 +12,14 @@ app.config['storage'] = path.join(getcwd(), 'storage')
 app.db = Database()
 app.face = Face(app)
 
+
 def success_handle(output, status=200, mimetype='application/json'):
     return Response(output, status=status, mimetype=mimetype)
 
 
 def error_handle(error_message, status=500, mimetype='application/json'):
     return Response(json.dumps({"error": {"message": error_message}}), status=status, mimetype=mimetype)
+
 
 def get_user_by_id(user_id):
     user = {}
@@ -28,7 +29,7 @@ def get_user_by_id(user_id):
 
     index = 0
     for row in results:
-        print(row)
+        # print(row)
         face = {
             "id": row[3],
             "user_id": row[4],
@@ -42,7 +43,7 @@ def get_user_by_id(user_id):
                 "created": row[2],
                 "faces": [],
             }
-        if 3 in row:
+        if row[3]:
             user["faces"].append(face)
         index = index + 1
 
@@ -50,16 +51,17 @@ def get_user_by_id(user_id):
         return user
     return None
 
+
 def delete_user_by_id(user_id):
     app.db.delete('DELETE FROM users WHERE users.id = ?', [user_id])
-    #also delete all faces with user id
+    # also delete all faces with user id
     app.db.delete('DELETE FROM faces WHERE faces.user_id = ?', [user_id])
 
-#router for homepage
+#   Route for Hompage
 @app.route('/', methods=['GET'])
 def page_home():
-    return render_template('index.html')
 
+    return render_template('index1.html')
 
 @app.route('/api', methods=['GET'])
 def homepage():
@@ -73,7 +75,7 @@ def train():
 
     if 'file' not in request.files:
 
-        print("Face image is required")
+        print ("Face image is required")
         return error_handle("Face image is required.")
     else:
 
@@ -128,10 +130,11 @@ def train():
 
         print("Request is contain image")
     return success_handle(output)
-#route for user profile
+
+
+# route for user profile
 @app.route('/api/users/<int:user_id>', methods=['GET', 'DELETE'])
 def user_profile(user_id):
-
     if request.method == 'GET':
         user = get_user_by_id(user_id)
         if user:
@@ -142,35 +145,34 @@ def user_profile(user_id):
         delete_user_by_id(user_id)
         return success_handle(json.dumps({"deleted": True}))
 
-#router for recognizing unknown face
+
+# router for recognize a unknown face
 @app.route('/api/recognize', methods=['POST'])
 def recognize():
     if 'file' not in request.files:
         return error_handle("Image is required")
     else:
         file = request.files['file']
-        #file extension validate
+        # file extension valiate
         if file.mimetype not in app.config['file_allowed']:
             return error_handle("File extension is not allowed")
         else:
+
             filename = secure_filename(file.filename)
-            unknown_store = path.join(app.config["storage"], 'unknown')
-            file_Path = path.join(unknown_store, filename)
-            file.save(file_Path)
+            unknown_storage = path.join(app.config["storage"], 'unknown')
+            file_path = path.join(unknown_storage, filename)
+            file.save(file_path)
 
             user_id = app.face.recognize(filename)
-
             if user_id:
                 user = get_user_by_id(user_id)
-                message = {"message": "hey we found {0} matched with your face image".format(user["name"]), "user": user}
+                message = {"message": "Hey we found {0} matched with your face image".format(user["name"]),
+                           "user": user}
                 return success_handle(json.dumps(message))
             else:
-                return error_handle("Sorry we can't find any matches with your face")
 
-    return success_handle(json.dumps({"filename_to_compare_is": filename}))
+                return error_handle("Sorry we can not found any people matched with your face image, try another image")
 
-@app.route("/test")
-def some_new():
-    return render_template("other.html")
 
+# Run the app
 app.run()
