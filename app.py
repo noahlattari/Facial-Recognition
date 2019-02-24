@@ -1,4 +1,4 @@
-from flask import Flask, json, Response, request
+from flask import Flask, json, Response, request, render_template
 from werkzeug.utils import secure_filename
 from os import path, getcwd
 import time
@@ -55,7 +55,13 @@ def delete_user_by_id(user_id):
     #also delete all faces with user id
     app.db.delete('DELETE FROM faces WHERE faces.user_id = ?', [user_id])
 
+#router for homepage
 @app.route('/', methods=['GET'])
+def page_home():
+    return render_template('index.html')
+
+
+@app.route('/api', methods=['GET'])
 def homepage():
     output = json.dumps({"api": '1.0'})
     return success_handle(output)
@@ -162,5 +168,9 @@ def recognize():
                 return error_handle("Sorry we can't find any matches with your face")
 
     return success_handle(json.dumps({"filename_to_compare_is": filename}))
+
+@app.route("/test")
+def some_new():
+    return render_template("other.html")
 
 app.run()
